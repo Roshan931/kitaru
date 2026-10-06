@@ -480,4 +480,43 @@ describe("createKitaruToolLoopAgent", () => {
     expect(model.doStreamCalls).toHaveLength(0);
     expect(execute).not.toHaveBeenCalled();
   });
+
+  it("rejects stream calls when a standalone override is active", async () => {
+    const client = new FakeClient();
+    const execute = vi.fn(async () => "live");
+    const model = new MockLanguageModelV4();
+    const agent = createKitaruToolLoopAgent(
+      {
+        model,
+        tools: {
+          work: tool({
+            execute,
+            inputSchema: jsonSchema<Record<never, never>>({
+              additionalProperties: false,
+              properties: {},
+              type: "object",
+            }),
+          }),
+        },
+      },
+      {
+        agentId: AGENT_ID,
+        allowedReplayModels: ["safe-replacement"],
+        client,
+        environment: {
+          KITARU_OVERRIDE: JSON.stringify({ model: "safe-replacement" }),
+        },
+        resolveModel: async () =>
+          new MockLanguageModelV4({ modelId: "safe-replacement" }),
+      },
+    );
+
+    await expect(agent.stream({ prompt: "Help" })).rejects.toThrow(
+      "Agent stream overrides are not supported",
+    );
+    expect(client.created).toHaveLength(0);
+    expect(client.replayReads).toBe(0);
+    expect(model.doStreamCalls).toHaveLength(0);
+    expect(execute).not.toHaveBeenCalled();
+  });
 });
