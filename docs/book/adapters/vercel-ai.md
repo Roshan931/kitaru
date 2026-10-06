@@ -61,10 +61,9 @@ console.log(result.text);
 
 The returned object implements AI SDK's public `Agent` interface. `version`, `id`, typed `tools`, all four Agent generic parameters, call-option validation, `prepareCall`, callbacks, runtime context, structured output, retries, timeouts, abort signals, and the native result object remain available. Each overlapping `generate()` invocation gets an independent Kitaru recorder and tool state.
 
-AI SDK's `Agent` interface also requires `stream()`. During ordinary execution, the adapter delegates that method directly to a native `ToolLoopAgent` without starting a Kitaru session. This preserves compatibility with native consumers, but Kitaru does not record the stream. When `KITARU_REPLAY_ID` is set, `stream()` rejects before provider or tool execution because streaming replay is unsupported.
+AI SDK's `Agent` interface also requires `stream()`. During ordinary execution, the adapter delegates that method directly to a native `ToolLoopAgent` without starting a Kitaru session. This preserves compatibility with native consumers, but Kitaru does not record the stream. When `KITARU_REPLAY_ID` or `KITARU_OVERRIDE` is set, `stream()` rejects before provider or tool execution, because streaming replay and streaming overrides are unsupported and the stream would otherwise run the original model and prompt.
 
 ## Record a direct generation
-
 Register an agent in Kitaru, then pass its ID to the adapter:
 
 ```ts
@@ -210,10 +209,9 @@ Version `0.1.0` supports:
 - `history`, `static`, and `passthrough` replay policies; and
 - bounded prompt, instruction, model-setting, and allowlisted model replacement during replay.
 
-It does not record streaming generation and does not wrap standalone `streamText`. Agent `stream()` rejects when replay is active. Provider-executed tools, dynamic tools, tool approval, sandboxed replay, per-step overrides through `prepareStep`, async-iterable tools during replay, and the `llm` tool policy are unsupported in replay. Async-iterable local tools remain native during baseline recording, but cannot be replayed.
+It does not record streaming generation and does not wrap standalone `streamText`. Agent `stream()` rejects when replay or a standalone `KITARU_OVERRIDE` is active. Provider-executed tools, dynamic tools, tool approval, sandboxed replay, per-step overrides through `prepareStep`, async-iterable tools during replay, and the `llm` tool policy are unsupported in replay. Async-iterable local tools remain native during baseline recording, but cannot be replayed.
 
 Manual approval is a two-call workflow in AI SDK, but Kitaru cannot persist a waiting Agent run without server and worker changes. When baseline `generate()` returns an unresolved manual approval request, the adapter returns the native result unchanged and marks the Kitaru session failed with `manual_approval_continuation_unsupported`. Automatic approval decisions complete normally. Agent replay rejects approval configuration and approval messages before any provider or tool side effect.
-
 ## Runnable examples
 
 - [Vercel AI SDK support triage](https://github.com/zenml-io/kitaru/tree/main/examples/typescript/vercel_ai_support_triage) is the smaller adapter-focused example. It shows a support agent, local tools, model replacement, and optional cost calculation.
