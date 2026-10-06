@@ -428,6 +428,9 @@ function createKitaruToolLoopAgentImpl<
       if (environment.KITARU_REPLAY_ID !== undefined) {
         throw new TypeError("Agent stream replay is not supported");
       }
+      if (environment.KITARU_OVERRIDE !== undefined) {
+        throw new TypeError("Agent stream overrides are not supported");
+      }
       return await new ToolLoopAgent(settings).stream(options);
     },
   };
